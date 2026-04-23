@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Design Copilot MVP - Concept Director v0.4</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="builder-panel" aria-labelledby="page-title">
+        <div class="title-block">
+          <p class="eyebrow">Concept Director v0.4</p>
+          <h1 id="page-title">상업 배너/간판 프롬프트 디렉터</h1>
+        </div>
+
+        <form id="prompt-form" class="prompt-form">
+          <label class="field">
+            <span>업종 / 매장 유형</span>
+            <input
+              id="business-category"
+              name="businessCategory"
+              type="text"
+              value="고깃집"
+              placeholder="예: 고깃집, 카페, 병원, 학원, 미용실"
+            />
+          </label>
+
+          <label class="field">
+            <span>사이즈 / 비율</span>
+            <input
+              id="design-size"
+              name="designSize"
+              type="text"
+              value="가로형 현수막 5000x900mm"
+              placeholder="예: 5000x900mm, 3000x600mm, 정사각 1:1, 세로 배너 900x1800mm"
+            />
+          </label>
+
+          <label class="field">
+            <span>요청 내용 / 포함 문구</span>
+            <textarea
+              id="promotion-copy"
+              name="promotionCopy"
+              rows="6"
+              placeholder="예: 오픈 안내, 메뉴 소개, 가격 홍보, 행사, 모집, 매장 이전, 시즌 캠페인 등 자유롭게 입력"
+            >창리 오창고깃집 대박 이벤트. 어린이날 5월 5일 어린이는 고기(돼지)가 공짜. 어버이날 5월 8일 어르신들은 고기(돼지)가 공짜. 임팩트있고 재미있게.</textarea>
+          </label>
+
+          <label class="field">
+            <span>참조 이미지</span>
+            <input id="reference-images" name="referenceImages" type="file" accept="image/*" multiple />
+          </label>
+
+          <div id="reference-preview" class="reference-preview" aria-live="polite"></div>
+
+          <label class="field">
+            <span>참조 스타일 메모</span>
+            <textarea
+              id="reference-notes"
+              name="referenceNotes"
+              rows="4"
+              placeholder="예: 노란 배경, 굵은 붓글씨, 캐릭터 느낌, 좌우 2분할 구성, 강한 할인 배지"
+            ></textarea>
+          </label>
+
+          <label class="field">
+            <span>디자인 스타일</span>
+            <select id="design-style" name="designStyle">
+              <option value="bold-retail-sale">강한 리테일 세일</option>
+              <option value="clean-premium-local">프리미엄 로컬 비즈니스</option>
+              <option value="friendly-neighborhood-promo">친근한 동네 홍보</option>
+              <option value="high-impact-event">고임팩트 이벤트</option>
+              <option value="food-promotion">푸드 프로모션</option>
+              <option value="urgent-limited-time">기간 한정 긴급 세일</option>
+              <option value="informational-service">정보형 서비스 홍보</option>
+              <option value="youth-trend-promo">영 트렌드 프로모션</option>
+            </select>
+          </label>
+
+          <button type="submit">3개 image2 프롬프트 생성</button>
+        </form>
+      </section>
+
+      <section class="output-panel" aria-labelledby="output-title">
+        <div class="output-heading">
+          <p class="eyebrow">Mock prompt engine</p>
+          <h2 id="output-title">상업 콘셉트 프롬프트 3안</h2>
+        </div>
+        <div id="prompt-output" class="prompt-output" aria-live="polite"></div>
+      </section>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
