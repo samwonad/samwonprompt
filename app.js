@@ -236,7 +236,7 @@ function createPromptVariation(
   const ratioGuidance = getRatioGuidance(targetSize);
   const referenceSummary =
     referenceFiles.length > 0
-      ? `Reference images attached by the user: ${referenceFiles.join(", ")}. Use them only as style and composition references, not as assets to copy exactly.`
+      ? `The user has selected ${referenceFiles.length} reference image(s) in the prompt tool. The designer must upload the same reference image(s) directly into GPT Image/image2 together with this prompt. Analyze the uploaded reference image(s) for style, composition, typography hierarchy, color contrast, visual energy, and commercial layout direction. Use them only as references, not as assets to copy exactly.`
       : "No reference images attached.";
   const referenceDirection =
     referenceNotes.length > 0
@@ -270,7 +270,7 @@ function createPromptVariation(
       {
         name: "production notes",
         label: "\uc0dd\uc131 / \uc791\uc5c5 \uc8fc\uc758\uc0ac\ud56d",
-        text: `Treat this as a GPT Image / image2 concept prompt only. This app does not call paid image APIs; the designer will manually paste this prompt into GPT Image/image2. Prompt instructions are written in English for better model control, but preserve required Korean copy exactly as Korean text intent. Respect the intended size or ratio: ${targetSize}. If GPT Image offers an aspect-ratio or canvas setting, choose the closest match before generation. Keep all important Korean copy large enough to evaluate. Avoid ${style.avoid}. Do not copy reference images exactly, do not create pixel-perfect final artwork, fabrication instructions, or one-click finished design.`,
+        text: `Treat this as a GPT Image / image2 concept prompt only. This app does not call paid image APIs; the designer will manually paste this prompt into GPT Image/image2. If reference images were selected in this tool, upload those same images directly into GPT Image/image2 before running the prompt; otherwise the model cannot see them. Prompt instructions are written in English for better model control, but preserve required Korean copy exactly as Korean text intent. Respect the intended size or ratio: ${targetSize}. If GPT Image offers an aspect-ratio or canvas setting, choose the closest match before generation. Keep all important Korean copy large enough to evaluate. Avoid ${style.avoid}. Do not copy reference images exactly, do not create pixel-perfect final artwork, fabrication instructions, or one-click finished design.`,
       },
     ],
   };

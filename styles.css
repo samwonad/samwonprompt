@@ -108,6 +108,13 @@ h2 {
   font-weight: 700;
 }
 
+.field small {
+  color: var(--warning);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
 input,
 select,
 textarea {
