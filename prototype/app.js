@@ -50,7 +50,7 @@ const intentRules = [
   {
     id: "price",
     label: "가격/할인 판매",
-    keywords: ["할인", "특가", "세일", "원", "%", "가격", "행사"],
+    keywords: ["할인", "특가", "세일", "원", "%", "가격"],
     implication: "Use large numerals, compact support copy, and urgency cues. Avoid burying price or benefit.",
   },
   {
@@ -257,8 +257,11 @@ function analyzeBrief(input) {
   const inferredAudience = inferAudience(raw);
   const inferredTone = inferTone(raw, input.referenceNotes, purpose);
   const copyDiagnosis = diagnoseCopy(input, detectedIntents);
+  const category = inferCategory(raw);
+  const brand = inferBrand(input);
+  const professionalBrief = buildProfessionalBrief(input, detectedIntents, purpose, category, brand);
   const hierarchy = buildHierarchy(input, detectedIntents, purpose);
-  const refinedCopy = buildRefinedCopy(input, detectedIntents, purpose);
+  const refinedCopy = buildRefinedCopy(input, detectedIntents, purpose, professionalBrief);
   const referenceSummary = buildReferenceSummary(input);
   const risks = detectRisks(input, ratio, detectedIntents);
 
@@ -271,6 +274,9 @@ function analyzeBrief(input) {
     inferredAudience,
     inferredTone,
     copyDiagnosis,
+    category,
+    brand,
+    professionalBrief,
     hierarchy,
     refinedCopy,
     referenceSummary,
@@ -278,6 +284,51 @@ function analyzeBrief(input) {
     referenceStyle:
       input.referenceNotes ||
       "No manual style direction was provided. Use the inferred commercial intent, copy hierarchy, and context to choose an appropriate professional direction.",
+  };
+}
+
+function inferBrand(input) {
+  const source = `${input.designConcept} ${input.headline}`.trim();
+  const uppercase = source.match(/[A-Z][A-Z0-9&-]{2,}/);
+  if (uppercase) return uppercase[0];
+
+  const koreanBrand = source.match(/([가-힣A-Za-z0-9&-]{2,})\s*(어린이날|EVENT|이벤트|오픈|체험|행사)/);
+  return koreanBrand ? koreanBrand[1] : "브랜드";
+}
+
+function inferCategory(raw) {
+  if (raw.includes("berily") || raw.includes("베릴리") || raw.includes("딸기") || raw.includes("농장") || raw.includes("체험")) {
+    return {
+      id: "experience-farm",
+      label: "가족 체험형 농장",
+      position: "아이와 부모가 함께 방문하는 체험형 로컬 데스티네이션",
+      value: "아이 중심의 계절 체험, 먹거리, 가족 나들이 경험을 한 화면에서 설득해야 함",
+    };
+  }
+
+  if (raw.includes("카페") || raw.includes("디저트")) {
+    return {
+      id: "cafe-dessert",
+      label: "카페/디저트 공간",
+      position: "방문 욕구와 메뉴 매력을 동시에 보여주는 로컬 F&B 브랜드",
+      value: "대표 메뉴, 공간 무드, 방문 이유를 간결하게 연결해야 함",
+    };
+  }
+
+  if (raw.includes("병원") || raw.includes("의원") || raw.includes("약국")) {
+    return {
+      id: "medical",
+      label: "신뢰 기반 서비스",
+      position: "전문성과 접근성을 동시에 전달해야 하는 로컬 서비스 브랜드",
+      value: "과장된 이벤트성보다 신뢰, 명확한 안내, 안정감을 우선해야 함",
+    };
+  }
+
+  return {
+    id: "local-commercial",
+    label: "로컬 상업 홍보",
+    position: "빠른 이해와 방문 동기를 만들어야 하는 지역 상업 캠페인",
+    value: "핵심 혜택, 대상, 행동 유도를 짧은 시간 안에 설득해야 함",
   };
 }
 
@@ -314,6 +365,73 @@ function diagnoseCopy(input, intents) {
   return facts.join(" / ");
 }
 
+function buildProfessionalBrief(input, intents, purpose, category, brand) {
+  const raw = `${input.designConcept} ${input.headline} ${input.subcopy} ${input.referenceNotes}`.toLowerCase();
+  const isChildEvent = raw.includes("어린이") || raw.includes("아이") || raw.includes("어린이날");
+  const isExperienceFarm = category.id === "experience-farm";
+  const hasKnownBerily = raw.includes("berily") || raw.includes("베릴리") || brand.toLowerCase() === "berily";
+  const hasStrawberry = hasKnownBerily || raw.includes("딸기");
+  const wantsPixar = raw.includes("픽사") || raw.includes("3d") || raw.includes("3D".toLowerCase());
+
+  if (isExperienceFarm && isChildEvent) {
+    return {
+      position: `${brand}를 어린이날 가족 방문형 체험 공간으로 재포지셔닝`,
+      coreIdea: hasStrawberry
+        ? "아이에게는 딸기를 직접 따고 만드는 즐거움, 부모에게는 당일 나들이 고민을 해결해주는 달콤한 가족 체험"
+        : "아이 중심 체험과 가족 나들이 동기를 결합한 어린이날 방문 제안",
+      mood: wantsPixar
+        ? "밝고 따뜻한 3D 애니메이션풍, 자연광, 아이 중심, 가족 피크닉 감성"
+        : "밝고 따뜻한 가족 나들이 감성, 자연광, 아이 중심의 체험형 이벤트 무드",
+      copy: {
+        headline: `${brand} 어린이날 체험 이벤트`,
+        subcopy: hasStrawberry
+          ? "5월 5일, 아이와 함께 즐기는 달콤한 딸기 체험 하루"
+          : "5월 5일, 아이를 위한 특별한 체험 나들이",
+        cta: "가족과 함께 즐거운 하루를 만나보세요",
+      },
+      usp: hasStrawberry
+        ? [
+            "딸기 수확 체험: 아이가 직접 따고 맛보는 현장감",
+            "만들기 체험: 디저트나 케이크처럼 손으로 완성하는 즐거움",
+            "가족 나들이: 부모와 아이가 함께 머무는 따뜻한 피크닉 경험",
+          ]
+        : [
+            "아이 중심 체험: 직접 해보는 참여형 프로그램",
+            "가족 동반 가치: 부모와 아이가 함께 즐기는 일정",
+            "어린이날 명분: 어디 갈지 고민을 줄여주는 목적지 제안",
+          ],
+      visual: hasStrawberry
+        ? "딸기밭 또는 체험 농장 배경, 빨갛게 열린 딸기, 딸기 바구니를 든 아이, 부모와 아이의 실루엣, 디저트 소품, 밝은 하늘과 자연광"
+        : "체험 공간 배경, 아이가 참여하는 장면, 부모와 아이의 동행감, 어린이날 장식, 밝은 자연광",
+      color: hasStrawberry
+        ? "Strawberry red, cream white, leaf green, sky blue, butter yellow"
+        : "warm red, cream white, soft green, sky blue, playful yellow",
+      exclude: hasStrawberry
+        ? "보석, 광산, 탐험 모자, 사파리, 정글, 어두운 보석톤, 놀이공원처럼 과장된 판타지"
+        : "맥락 없는 판타지, 과한 장식, 대상이 불명확한 이벤트 이미지, 어두운 톤",
+    };
+  }
+
+  return {
+    position: `${brand}를 ${category.position}으로 정리`,
+    coreIdea: category.value,
+    mood: "상업적으로 명확하고 전문적인 콘셉트, 과장보다 이해와 방문 동기 우선",
+    copy: {
+      headline: input.headline,
+      subcopy: "입력 내용을 더 짧고 설득력 있는 상업 문장으로 재구성",
+      cta: input.cta,
+    },
+    usp: [
+      "핵심 혜택: 사용자가 가장 먼저 이해해야 하는 방문 이유",
+      "신뢰 요소: 브랜드/장소/서비스가 믿을 만하게 보이는 근거",
+      "행동 유도: 지금 방문하거나 문의해야 하는 명확한 다음 행동",
+    ],
+    visual: "브랜드 맥락에 맞는 실제 사용 장면, 읽기 쉬운 카피 영역, 과하지 않은 상업적 임팩트",
+    color: "브랜드 맥락에 맞는 3-5색 제한 팔레트",
+    exclude: "입력 의도와 무관한 장식, 과한 판타지, 읽기 어려운 작은 글자, 맥락 없는 이미지",
+  };
+}
+
 function buildHierarchy(input, intents, purpose) {
   const hasFreeOffer = intents.some((intent) => intent.id === "free-offer");
   const hasFamilyEvent = intents.some((intent) => intent.id === "family-event");
@@ -337,7 +455,7 @@ function buildHierarchy(input, intents, purpose) {
   return [`1. Main message: ${input.headline}`, `2. Reason to care: ${input.subcopy}`, `3. Action: ${input.cta}`];
 }
 
-function buildRefinedCopy(input, intents, purpose) {
+function buildRefinedCopy(input, intents, purpose, professionalBrief) {
   const hasFreeOffer = intents.some((intent) => intent.id === "free-offer");
   const hasFamilyEvent = intents.some((intent) => intent.id === "family-event");
   const concept = input.designConcept.replace(/\s+/g, " ");
@@ -349,6 +467,16 @@ function buildRefinedCopy(input, intents, purpose) {
       cta: input.cta || "가족과 함께 방문하세요",
       note:
         "The generated copy may improve wording and grouping, but must not invent new dates, discounts, menu items, or eligibility conditions.",
+    };
+  }
+
+  if (professionalBrief) {
+    return {
+      headline: professionalBrief.copy.headline,
+      subcopy: professionalBrief.copy.subcopy,
+      cta: professionalBrief.copy.cta,
+      note:
+        "Rewrite copy like an art director: improve clarity and appeal, but preserve factual claims from the brief. Do not include the user's instruction text as visible copy.",
     };
   }
 
@@ -446,28 +574,29 @@ function createPromptVariation(input, analysis, strategy) {
       {
         label: "입력 분석",
         text:
-          `Do not paste the user's form fields literally. Interpret the brief first. ` +
-          `Detected intent: ${analysis.intentLabels.join(", ") || "general commercial message"}. ` +
-          `Audience: ${analysis.inferredAudience}. Tone: ${analysis.inferredTone}. ` +
-          `Copy diagnosis: ${analysis.copyDiagnosis}.`,
+          `입력문을 그대로 쓰지 말고 디자인 브리프로 해석한다. ` +
+          `감지된 맥락: ${analysis.category.label}, ${analysis.intentLabels.join(", ") || "일반 상업 메시지"}. ` +
+          `예상 타겟: ${analysis.inferredAudience}. 톤: ${analysis.inferredTone}. ` +
+          `정리된 포지션: ${analysis.professionalBrief.position}.`,
       },
       {
-        label: "재구성된 디자인 브리프",
+        label: "전문 재구성 브리프",
         text:
-          `Design a Korean commercial concept for ${input.useContext || "a professional commercial placement"}. ` +
-          `Concept: ${input.designConcept}. Commercial purpose: ${analysis.purpose.label}. ` +
-          `Reading hierarchy: ${analysis.hierarchy.join(" / ")}. ` +
-          `Suggested rewritten copy direction: headline "${analysis.refinedCopy.headline}", support "${analysis.refinedCopy.subcopy}", CTA "${analysis.refinedCopy.cta}". ` +
-          `${analysis.ratio.text}`,
+          `포지션: ${analysis.professionalBrief.position}. ` +
+          `핵심 아이디어: ${analysis.professionalBrief.coreIdea}. ` +
+          `카피 방향: 메인 "${analysis.refinedCopy.headline}", 서브 "${analysis.refinedCopy.subcopy}", CTA "${analysis.refinedCopy.cta}". ` +
+          `USP 구조: ${analysis.professionalBrief.usp.join(" / ")}. ` +
+          `매체/비율: ${input.useContext || "상업 홍보물"}, ${analysis.ratio.requested} 기준. ${analysis.ratio.text}`,
       },
       {
         label: "image2 실행 프롬프트",
         text:
-          `Create one professional GPT Image/image2 concept direction. ${strategy.directive} ` +
-          `${strategy.composition} ${intentImplications} ` +
-          `Use this style direction as art direction, not decoration: ${analysis.referenceStyle}. ` +
-          `${analysis.referenceSummary} You may rewrite and improve the Korean copy for a stronger design concept instead of pasting the form text literally. ` +
-          `Original input for factual grounding: headline "${input.headline}", support "${input.subcopy}", CTA "${input.cta}". ` +
+          `Create one professional GPT Image/image2 concept direction for a Korean commercial designer. ` +
+          `Do not show the user's raw instruction text. Build the design from the analyzed brief. ` +
+          `${strategy.directive} ${strategy.composition} ${intentImplications} ` +
+          `Art direction: ${analysis.professionalBrief.mood}. Visual scene: ${analysis.professionalBrief.visual}. ` +
+          `Color system: ${analysis.professionalBrief.color}. Reference style notes from user: ${analysis.referenceStyle}. ` +
+          `${analysis.referenceSummary} Use improved Korean copy, not a literal paste: headline "${analysis.refinedCopy.headline}", support "${analysis.refinedCopy.subcopy}", CTA "${analysis.refinedCopy.cta}". ` +
           `${analysis.refinedCopy.note}`,
       },
       {
@@ -479,7 +608,7 @@ function createPromptVariation(input, analysis, strategy) {
       {
         label: "금지사항 / QA",
         text:
-          `Avoid ${strategy.avoid}. Do not create a final artwork claim, do not copy references exactly, and do not let style overpower readability. ` +
+          `절대 제외: ${analysis.professionalBrief.exclude}. Also avoid ${strategy.avoid}. Do not create a final artwork claim, do not copy references exactly, and do not let style overpower readability. ` +
           "Self-check: core message in 3 seconds, headline readable from 10m, all required copy present, CTA visible, brand tone intact, and layout useful for Illustrator refinement.",
       },
     ],
