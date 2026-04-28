@@ -257,9 +257,10 @@ function analyzeBrief(input) {
   const inferredAudience = inferAudience(raw);
   const inferredTone = inferTone(raw, input.referenceNotes, purpose);
   const copyDiagnosis = diagnoseCopy(input, detectedIntents);
-  const category = inferCategory(raw);
   const brand = inferBrand(input);
-  const professionalBrief = buildProfessionalBrief(input, detectedIntents, purpose, category, brand);
+  const campaignModel = buildCampaignModel(input, raw, brand);
+  const category = inferCategory(raw, campaignModel);
+  const professionalBrief = buildProfessionalBrief(input, detectedIntents, purpose, category, brand, campaignModel);
   const hierarchy = buildHierarchy(input, detectedIntents, purpose);
   const refinedCopy = buildRefinedCopy(input, detectedIntents, purpose, professionalBrief);
   const referenceSummary = buildReferenceSummary(input);
@@ -276,6 +277,7 @@ function analyzeBrief(input) {
     copyDiagnosis,
     category,
     brand,
+    campaignModel,
     professionalBrief,
     hierarchy,
     refinedCopy,
@@ -289,6 +291,9 @@ function analyzeBrief(input) {
 
 function inferBrand(input) {
   const source = `${input.designConcept} ${input.headline}`.trim();
+  const adCompanyBrand = source.match(/([가-힣A-Za-z0-9&\s-]{2,}?(?:광고기획|광고|디자인|애드|기획사|인쇄|사인|간판))/);
+  if (adCompanyBrand) return adCompanyBrand[1].trim();
+
   const restaurantBrand = source.match(/([가-힣A-Za-z0-9&\s-]{2,}?(?:고깃집|식당|갈비|삼겹살|정육식당|한우|카페|농장|베이커리|병원|학원|약국))/);
   if (restaurantBrand) return restaurantBrand[1].trim();
 
@@ -301,19 +306,92 @@ function inferBrand(input) {
   }
 
   const conceptLead = input.designConcept
-    .replace(/(어린이날|어버이날|이벤트|행사|감사|프로모션|특가|무료|공짜)/g, "")
+    .replace(/(5월|가족의달|가족의 달|어린이날|어버이날|이벤트|행사|감사|프로모션|특가|무료|공짜)/g, "")
     .trim();
   return conceptLead || "브랜드";
 }
 
-function inferCategory(raw) {
-  if (
+function buildCampaignModel(input, raw, brand) {
+  const medium = input.useContext || "상업 홍보물";
+  const isAdCompany =
+    raw.includes("광고회사") ||
+    raw.includes("광고기획") ||
+    raw.includes("현수막") ||
+    raw.includes("간판") ||
+    raw.includes("제작") ||
+    brand.includes("광고");
+  const isRestaurant =
     raw.includes("고깃집") ||
     raw.includes("식당") ||
     raw.includes("삼겹") ||
     raw.includes("갈비") ||
     raw.includes("돼지고기") ||
-    raw.includes("고기")
+    raw.includes("고기");
+  const isExperienceFarm = raw.includes("berily") || raw.includes("베릴리") || raw.includes("딸기") || raw.includes("농장") || raw.includes("체험");
+  const season = inferSeason(raw);
+  const offer = inferOffer(input, raw, isAdCompany);
+  const target = inferCampaignTarget(raw, isAdCompany, isRestaurant, isExperienceFarm);
+
+  return {
+    brand,
+    medium,
+    season,
+    offer,
+    target,
+    isAdCompany,
+    isRestaurant,
+    isExperienceFarm,
+    subject: isAdCompany
+      ? "광고회사의 가족 배경 현수막 무료 제작 홍보"
+      : isRestaurant
+        ? "고깃집 가족 방문 혜택 홍보"
+        : isExperienceFarm
+          ? "가족 체험형 방문 공간 홍보"
+          : "로컬 상업 이벤트 홍보",
+  };
+}
+
+function inferSeason(raw) {
+  if (raw.includes("가족의달") || raw.includes("가족의 달")) return "5월 가족의 달";
+  if (raw.includes("어버이날")) return "어버이날";
+  if (raw.includes("어린이날")) return "어린이날";
+  if (raw.includes("크리스마스")) return "크리스마스";
+  if (raw.includes("추석")) return "추석";
+  return "시즌/행사 명분";
+}
+
+function inferOffer(input, raw, isAdCompany) {
+  if (isAdCompany && raw.includes("무료") && raw.includes("현수막")) {
+    return "가족 배경 현수막 무료 제작";
+  }
+  if ((raw.includes("공짜") || raw.includes("무료")) && raw.includes("돼지고기")) {
+    return "돼지고기 무료 혜택";
+  }
+  if (raw.includes("공짜") || raw.includes("무료")) return "무료 혜택";
+  if (raw.includes("체험")) return "체험 참여";
+  return input.cta || "참여/방문 유도";
+}
+
+function inferCampaignTarget(raw, isAdCompany, isRestaurant, isExperienceFarm) {
+  if (isAdCompany) return "가족 사진/가족 행사 분위기의 현수막이 필요한 지역 소상공인과 매장 운영자";
+  if (isRestaurant && (raw.includes("어르신") || raw.includes("어버이날"))) return "부모님과 함께 외식하려는 가족 고객";
+  if (isExperienceFarm) return "아이와 주말/기념일 나들이를 찾는 부모";
+  if (raw.includes("어린이") || raw.includes("아이")) return "아이 동반 가족";
+  return "빠르게 혜택을 판단하는 지역 고객";
+}
+
+function inferCategory(raw, campaignModel) {
+  if (campaignModel.isAdCompany) {
+    return {
+      id: "ad-company-promotion",
+      label: "광고회사 제작 서비스 홍보",
+      position: "지역 매장에게 시즌형 현수막 제작 수요를 만드는 광고회사 프로모션",
+      value: "무료 제작 혜택, 가족의 달 명분, 샘플 비주얼의 완성도를 통해 문의를 유도해야 함",
+    };
+  }
+
+  if (
+    campaignModel.isRestaurant
   ) {
     return {
       id: "korean-bbq-restaurant",
@@ -323,7 +401,7 @@ function inferCategory(raw) {
     };
   }
 
-  if (raw.includes("berily") || raw.includes("베릴리") || raw.includes("딸기") || raw.includes("농장") || raw.includes("체험")) {
+  if (campaignModel.isExperienceFarm) {
     return {
       id: "experience-farm",
       label: "가족 체험형 농장",
@@ -391,7 +469,7 @@ function diagnoseCopy(input, intents) {
   return facts.join(" / ");
 }
 
-function buildProfessionalBrief(input, intents, purpose, category, brand) {
+function buildProfessionalBrief(input, intents, purpose, category, brand, campaignModel) {
   const raw = `${input.designConcept} ${input.headline} ${input.subcopy} ${input.referenceNotes}`.toLowerCase();
   const isChildEvent = raw.includes("어린이") || raw.includes("아이") || raw.includes("어린이날");
   const isParentsDay = raw.includes("어버이날") || raw.includes("어르신") || raw.includes("부모");
@@ -401,6 +479,31 @@ function buildProfessionalBrief(input, intents, purpose, category, brand) {
   const hasStrawberry = hasKnownBerily || raw.includes("딸기");
   const wantsPixar = raw.includes("픽사") || raw.includes("3d") || raw.includes("3D".toLowerCase());
   const wantsReferenceCharacter = raw.includes("캐릭터") || raw.includes("제시한 이미지") || input.referenceFiles.length > 0;
+
+  if (category.id === "ad-company-promotion") {
+    return {
+      position: `${brand}를 시즌형 현수막 제작 전문 광고회사로 포지셔닝`,
+      coreIdea:
+        "가족의 달을 맞아 매장들이 바로 써먹을 수 있는 가족 배경 현수막 샘플을 보여주고, 무료 제작 혜택으로 문의 전환을 만든다.",
+      mood:
+        "따뜻한 가족 사진/일러스트 감성에 광고회사 포트폴리오 같은 완성도를 더한 홍보형 무드. 감성은 부드럽게, 혜택과 문의 유도는 명확하게.",
+      copy: {
+        headline: `${brand} 5월 가족의 달 현수막 이벤트`,
+        subcopy: "가족 배경 현수막을 무료 제작해 드립니다",
+        cta: input.cta || "제작 혜택 문의하기",
+      },
+      usp: [
+        `광고주: ${brand}가 제공하는 현수막 제작 서비스`,
+        `오퍼: ${campaignModel.offer}`,
+        "타겟: 가족의 달 프로모션이 필요한 지역 매장과 소상공인",
+      ],
+      visual:
+        "가족의 달 분위기의 따뜻한 가족 배경 현수막 샘플, 실제 매장 외부에 걸린 듯한 현수막 목업, 광고회사 제작 포트폴리오 느낌, 큰 혜택 문구와 문의 CTA",
+      color: "warm cream, family red, soft green, sky blue, clean white, trustworthy dark text",
+      exclude:
+        "고깃집 혜택 이벤트처럼 보이는 구성, 실제 식당 방문 행사로 오해되는 표현, 어린이/어르신 무료 식사 혜택, 과한 지브리 모사, 읽기 어려운 감성 포스터",
+    };
+  }
 
   if (isKoreanBbq && (isParentsDay || isChildEvent)) {
     const hasPorkOffer = raw.includes("돼지고기") || raw.includes("고기");
@@ -638,7 +741,8 @@ function createPromptVariation(input, analysis, strategy) {
         text:
           `입력문을 그대로 쓰지 말고 디자인 브리프로 해석한다. ` +
           `감지된 맥락: ${analysis.category.label}, ${analysis.intentLabels.join(", ") || "일반 상업 메시지"}. ` +
-          `예상 타겟: ${analysis.inferredAudience}. 톤: ${analysis.inferredTone}. ` +
+          `광고 대상: ${analysis.campaignModel.subject}. 오퍼: ${analysis.campaignModel.offer}. ` +
+          `타겟: ${analysis.campaignModel.target}. 시즌 명분: ${analysis.campaignModel.season}. 톤: ${analysis.inferredTone}. ` +
           `정리된 포지션: ${analysis.professionalBrief.position}.`,
       },
       {
@@ -665,6 +769,7 @@ function createPromptVariation(input, analysis, strategy) {
         label: "디렉터 판단",
         text:
           `This option is chosen because the brief suggests: ${analysis.risks.join("; ")}. ` +
+          `The big-picture job is ${analysis.campaignModel.subject}, not a literal decoration of the input text. ` +
           `Prioritize ${analysis.purpose.priority}. Make this direction meaningfully different from the other options through hierarchy, composition, and persuasion strategy.`,
       },
       {
