@@ -289,14 +289,40 @@ function analyzeBrief(input) {
 
 function inferBrand(input) {
   const source = `${input.designConcept} ${input.headline}`.trim();
+  const restaurantBrand = source.match(/([가-힣A-Za-z0-9&\s-]{2,}?(?:고깃집|식당|갈비|삼겹살|정육식당|한우|카페|농장|베이커리|병원|학원|약국))/);
+  if (restaurantBrand) return restaurantBrand[1].trim();
+
   const uppercase = source.match(/[A-Z][A-Z0-9&-]{2,}/);
   if (uppercase) return uppercase[0];
 
   const koreanBrand = source.match(/([가-힣A-Za-z0-9&-]{2,})\s*(어린이날|EVENT|이벤트|오픈|체험|행사)/);
-  return koreanBrand ? koreanBrand[1] : "브랜드";
+  if (koreanBrand && !["어린이날", "어버이날", "가족", "감사"].includes(koreanBrand[1])) {
+    return koreanBrand[1];
+  }
+
+  const conceptLead = input.designConcept
+    .replace(/(어린이날|어버이날|이벤트|행사|감사|프로모션|특가|무료|공짜)/g, "")
+    .trim();
+  return conceptLead || "브랜드";
 }
 
 function inferCategory(raw) {
+  if (
+    raw.includes("고깃집") ||
+    raw.includes("식당") ||
+    raw.includes("삼겹") ||
+    raw.includes("갈비") ||
+    raw.includes("돼지고기") ||
+    raw.includes("고기")
+  ) {
+    return {
+      id: "korean-bbq-restaurant",
+      label: "로컬 고깃집 가족 방문 이벤트",
+      position: "가족 단위 방문을 유도하는 동네 고깃집 프로모션",
+      value: "가정의 달 명분, 무료 혜택, 따뜻한 식사 장면을 빠르게 연결해야 함",
+    };
+  }
+
   if (raw.includes("berily") || raw.includes("베릴리") || raw.includes("딸기") || raw.includes("농장") || raw.includes("체험")) {
     return {
       id: "experience-farm",
@@ -368,10 +394,46 @@ function diagnoseCopy(input, intents) {
 function buildProfessionalBrief(input, intents, purpose, category, brand) {
   const raw = `${input.designConcept} ${input.headline} ${input.subcopy} ${input.referenceNotes}`.toLowerCase();
   const isChildEvent = raw.includes("어린이") || raw.includes("아이") || raw.includes("어린이날");
+  const isParentsDay = raw.includes("어버이날") || raw.includes("어르신") || raw.includes("부모");
   const isExperienceFarm = category.id === "experience-farm";
+  const isKoreanBbq = category.id === "korean-bbq-restaurant";
   const hasKnownBerily = raw.includes("berily") || raw.includes("베릴리") || brand.toLowerCase() === "berily";
   const hasStrawberry = hasKnownBerily || raw.includes("딸기");
   const wantsPixar = raw.includes("픽사") || raw.includes("3d") || raw.includes("3D".toLowerCase());
+  const wantsReferenceCharacter = raw.includes("캐릭터") || raw.includes("제시한 이미지") || input.referenceFiles.length > 0;
+
+  if (isKoreanBbq && (isParentsDay || isChildEvent)) {
+    const hasPorkOffer = raw.includes("돼지고기") || raw.includes("고기");
+    const hasFreeOffer = raw.includes("공짜") || raw.includes("무료");
+    const eventName = isParentsDay && isChildEvent ? "가정의 달 가족 감사 이벤트" : isParentsDay ? "어버이날 감사 이벤트" : "어린이날 가족 이벤트";
+
+    return {
+      position: `${brand}를 ${eventName}로 재포지셔닝`,
+      coreIdea:
+        "가족이 함께 고깃집을 방문해야 할 명분을 만든다. 혜택은 크게, 날짜와 대상은 헷갈리지 않게, 식당의 따뜻한 분위기는 참조 이미지 기반으로 살린다.",
+      mood: wantsReferenceCharacter
+        ? "참조 이미지의 친근한 3D 캐릭터 감성과 실제 고깃집 배경을 결합한 밝고 유쾌한 가족 외식 무드"
+        : "따뜻한 식당 조명, 지글거리는 고기, 가족 감사 메시지가 중심인 밝고 친근한 외식 이벤트 무드",
+      copy: {
+        headline: isParentsDay ? `${brand} 어버이날 감사 이벤트` : `${brand} 가족 감사 이벤트`,
+        subcopy:
+          hasPorkOffer && hasFreeOffer
+            ? "5월 8일, 어르신께 돼지고기 1인분 무료 혜택을 크게 안내"
+            : "가정의 달 가족 방문 혜택을 날짜와 대상 중심으로 명확히 안내",
+        cta: input.cta || "가족과 함께 방문하세요",
+      },
+      usp: [
+        "감사 명분: 어버이날 부모님과 함께 방문하기 좋은 이유",
+        "명확한 혜택: 어르신 대상 무료 고기 혜택을 크게 인지",
+        "외식 장면: 고기 굽는 식탁, 웃는 가족, 친근한 캐릭터로 방문 욕구 강화",
+      ],
+      visual:
+        "따뜻한 고깃집 내부, 불판 위 돼지고기, 부모님/어르신과 가족이 함께 웃는 장면, 참조 이미지의 캐릭터 느낌을 활용한 인물 표현, 큰 감사 헤드라인과 혜택 박스",
+      color: "grill charcoal, warm amber, pork red, cream white, festive yellow, small green accent",
+      exclude:
+        "딸기농장, 보석/탐험/사파리, 놀이공원 배경, 과한 할인마트 톤, 혜택 대상이 어린이로 오해되는 구성, 작은 날짜/조건 문구",
+    };
+  }
 
   if (isExperienceFarm && isChildEvent) {
     return {
