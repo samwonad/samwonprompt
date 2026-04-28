@@ -12,43 +12,115 @@ let previewUrls = [];
 const purposeProfiles = {
   awareness: {
     label: "인지 / 발견성",
-    priority: "fast category recognition, strong silhouette, brand memorability, and distance readability",
+    priority: "discoverability, simple category recognition, memorable first impression, and distance readability",
   },
   conversion: {
     label: "전환 / 방문 유도",
-    priority: "CTA clarity, offer hierarchy, immediate benefit recognition, and low-friction action",
+    priority: "clear benefit, direct CTA, high contrast, and quick decision-making",
   },
   event: {
     label: "행사 / 프로모션",
-    priority: "date clarity, audience separation, event title scale, and energetic commercial impact",
+    priority: "date hierarchy, audience separation, festive impact, and offer clarity",
   },
   branding: {
     label: "브랜딩 / 신뢰감",
-    priority: "consistent tone, refined hierarchy, trust cues, and premium restraint",
+    priority: "tone consistency, restrained hierarchy, trust cues, and long-term brand fit",
   },
 };
 
-const variationProfiles = [
+const intentRules = [
   {
-    title: "A안. 타이포 중심",
-    strategy: "Typography-first information design",
-    directive:
-      "Make the Korean headline the visual anchor. Win through hierarchy, spacing, contrast, and a 3-second reading order.",
-    avoid: "tiny body copy, low-contrast type, decorative effects that weaken legibility, and scattered badges",
+    id: "free-offer",
+    label: "무료 혜택 강조",
+    keywords: ["공짜", "무료", "증정", "사은품", "1+1", "서비스"],
+    implication: "The offer is the hook. Make the word FREE or the Korean equivalent visually dominant without making the layout look cheap.",
   },
   {
-    title: "B안. 비주얼 중심",
-    strategy: "Visual-led brand recognition",
-    directive:
-      "Use a strong image, graphic motif, texture, or spatial rhythm to create instant mood while keeping the copy easy to read.",
-    avoid: "generic stock-photo feeling, visual noise behind Korean text, copied reference layouts, and unclear focal points",
+    id: "family-event",
+    label: "가족/기념일 이벤트",
+    keywords: ["어린이", "어버이", "가족", "부모", "아이", "기념일", "5월"],
+    implication: "Separate audience groups clearly and keep the mood warm, celebratory, and easy to understand.",
   },
   {
-    title: "C안. 상업 성과 중심",
-    strategy: "Conversion-focused commercial layout",
+    id: "opening",
+    label: "오픈/이전/신규 안내",
+    keywords: ["오픈", "개업", "이전", "신규", "확장", "재오픈"],
+    implication: "Prioritize store name, location recognition, opening message, and trust.",
+  },
+  {
+    id: "price",
+    label: "가격/할인 판매",
+    keywords: ["할인", "특가", "세일", "원", "%", "가격", "행사"],
+    implication: "Use large numerals, compact support copy, and urgency cues. Avoid burying price or benefit.",
+  },
+  {
+    id: "premium",
+    label: "프리미엄/신뢰",
+    keywords: ["프리미엄", "고급", "전문", "신뢰", "병원", "브랜드"],
+    implication: "Reduce decoration, use confident spacing, and make the tone credible rather than loud.",
+  },
+];
+
+const strategyPool = [
+  {
+    title: "타이포그래픽 오퍼 락업",
+    strategy: "Headline and offer architecture",
+    fits: ["free-offer", "price", "family-event"],
     directive:
-      "Prioritize CTA, benefit, offer, and distance readability. Make the design useful for real commercial decision-making.",
-    avoid: "poster-like complexity, hidden CTA, over-stylized lettering, weak offer emphasis, and excessive fine detail",
+      "Build a strong typographic lockup where the core benefit is impossible to miss. Use controlled scale jumps, short copy blocks, and high contrast.",
+    composition:
+      "Place the main headline as the largest object. Split supporting facts into 2-3 compact zones. CTA should sit in a clear terminal position.",
+    avoid: "flat list-like copy, equal-sized text, small date details, and decorative effects that compete with the offer",
+  },
+  {
+    title: "대상 분리형 이벤트 구조",
+    strategy: "Audience-segmented event layout",
+    fits: ["family-event"],
+    directive:
+      "Analyze the audience groups and give each group its own readable area while keeping one unified event identity.",
+    composition:
+      "Use a split or tiered layout: one zone for the shared event promise, separate zones for each audience/date/condition, and a simple CTA footer.",
+    avoid: "mixing conditions into one paragraph, unclear dates, childish clutter, and tiny eligibility text",
+  },
+  {
+    title: "거리 가독성 우선 구조",
+    strategy: "Distance-readable commercial sign logic",
+    fits: ["awareness", "conversion", "price"],
+    directive:
+      "Compress the idea into a street-readable layout. The viewer should understand the offer before reading all supporting copy.",
+    composition:
+      "Use 3 reading levels only: main hook, proof/condition, action. Keep generous negative space around Korean text.",
+    avoid: "poster density, thin type, low-contrast background imagery, and long sentences",
+  },
+  {
+    title: "브랜드 무드 비주얼 시스템",
+    strategy: "Mood-led art direction",
+    fits: ["branding", "premium", "opening"],
+    directive:
+      "Turn the brief into a visual language rather than a literal copy board. Use texture, color temperature, and type personality to set the brand mood.",
+    composition:
+      "Make one visual motif support the message. Keep copy grouped and protected from busy image areas. Use restraint so designers can refine it.",
+    avoid: "generic stock look, copied reference imagery, noisy backgrounds behind text, and random decorative stickers",
+  },
+  {
+    title: "CTA 전환형 상업 레이아웃",
+    strategy: "Action-driven conversion layout",
+    fits: ["conversion", "free-offer", "price"],
+    directive:
+      "Reframe the input as a commercial action path: why care, what benefit, what to do next.",
+    composition:
+      "Start with the benefit, support with one proof or condition, then finish with a clear CTA. Make the CTA visible but not larger than the hook.",
+    avoid: "hidden CTA, vague benefit, too many badges, and low-priority details fighting the headline",
+  },
+  {
+    title: "정보 정리형 디렉션",
+    strategy: "Editorial hierarchy for complex copy",
+    fits: ["event", "opening", "awareness"],
+    directive:
+      "Convert messy input into a clean information hierarchy. The result should feel designed, not merely decorated.",
+    composition:
+      "Use a structured grid with labeled copy groups. Prioritize exact Korean text intent, but simplify visual grouping for fast scanning.",
+    avoid: "copy pasted as a paragraph, equal emphasis on every phrase, unclear reading order, and excessive small labels",
   },
 ];
 
@@ -73,9 +145,7 @@ function parseRatio(rawValue) {
   if (dimensionMatch) {
     const width = Number(dimensionMatch[1]);
     const height = Number(dimensionMatch[2]);
-    if (width > 0 && height > 0) {
-      return { ratio: width / height, width, height };
-    }
+    if (width > 0 && height > 0) return { ratio: width / height, width, height };
   }
 
   if (value.includes("정사각") || value.includes("square")) return { ratio: 1 };
@@ -93,8 +163,9 @@ function getRatioGuidance(rawValue) {
       requested,
       normalized: requested,
       warning: "",
+      orientation: "custom",
       text:
-        "Canvas guidance: custom size or ratio. Keep the layout professional, readable, and close to the user's requested format.",
+        "Canvas guidance: custom size or ratio. Keep the layout professional, readable, and close to the requested format.",
     };
   }
 
@@ -110,9 +181,10 @@ function getRatioGuidance(rawValue) {
       requested,
       normalized,
       warning,
+      orientation: "wide",
       text:
         `Canvas guidance: use a maximum ${MAX_RATIO}:1 wide commercial layout. Requested: ${requested}. Normalized: ${normalized}. ` +
-        "Use strong horizontal reading zones and avoid square poster composition.",
+        "Use horizontal reading zones, not a square poster composition.",
     };
   }
 
@@ -121,9 +193,10 @@ function getRatioGuidance(rawValue) {
       requested,
       normalized,
       warning,
+      orientation: "landscape",
       text:
         `Canvas guidance: landscape commercial format. Requested: ${requested}. Normalized: ${normalized}. ` +
-        "Build a left-to-right hierarchy with clear copy grouping.",
+        "Use left-to-right hierarchy with protected copy areas.",
     };
   }
 
@@ -132,9 +205,10 @@ function getRatioGuidance(rawValue) {
       requested,
       normalized,
       warning,
+      orientation: "square",
       text:
         `Canvas guidance: near-square format. Requested: ${requested}. Normalized: ${normalized}. ` +
-        "Use compact composition and keep headline, support copy, and CTA separated.",
+        "Use compact poster-like hierarchy only because the ratio supports it.",
     };
   }
 
@@ -142,6 +216,7 @@ function getRatioGuidance(rawValue) {
     requested,
     normalized,
     warning,
+    orientation: "vertical",
     text:
       `Canvas guidance: vertical format. Requested: ${requested}. Normalized: ${normalized}. ` +
       "Use top-to-bottom reading order and avoid wide banner assumptions.",
@@ -167,65 +242,245 @@ function validateInput(input) {
   return missing;
 }
 
-function normalizeBrief(input) {
+function includesAny(text, keywords) {
+  return keywords.some((keyword) => text.includes(keyword.toLowerCase()));
+}
+
+function analyzeBrief(input) {
+  const raw = [input.designConcept, input.useContext, input.headline, input.subcopy, input.cta, input.referenceNotes]
+    .join(" ")
+    .toLowerCase();
   const purpose = purposeProfiles[input.commercialPurpose] ?? purposeProfiles.conversion;
   const ratio = getRatioGuidance(input.canvasRatio);
-  const referenceCount = input.referenceFiles.length;
-  const referenceSummary =
-    referenceCount > 0
-      ? `${referenceCount} reference image(s) will be manually uploaded by the designer to GPT Image/image2. Analyze them for layout rhythm, typography hierarchy, color contrast, texture, and commercial energy. Do not copy them exactly.`
-      : "No reference image is attached. Follow the written style direction instead.";
+  const detectedIntents = intentRules.filter((rule) => includesAny(raw, rule.keywords));
+  const intentLabels = detectedIntents.map((intent) => intent.label);
+  const inferredAudience = inferAudience(raw);
+  const inferredTone = inferTone(raw, input.referenceNotes, purpose);
+  const copyDiagnosis = diagnoseCopy(input, detectedIntents);
+  const hierarchy = buildHierarchy(input, detectedIntents, purpose);
+  const refinedCopy = buildRefinedCopy(input, detectedIntents, purpose);
+  const referenceSummary = buildReferenceSummary(input);
+  const risks = detectRisks(input, ratio, detectedIntents);
 
   return {
-    designConcept: input.designConcept,
-    useContext: input.useContext || "professional commercial design concept",
-    headline: input.headline,
-    subcopy: input.subcopy,
-    cta: input.cta,
+    raw,
     purpose,
     ratio,
+    detectedIntents,
+    intentLabels,
+    inferredAudience,
+    inferredTone,
+    copyDiagnosis,
+    hierarchy,
+    refinedCopy,
+    referenceSummary,
+    risks,
     referenceStyle:
       input.referenceNotes ||
-      "Use a clear professional commercial style. Prioritize typography hierarchy, composition discipline, and practical Illustrator refinement.",
-    referenceSummary,
+      "No manual style direction was provided. Use the inferred commercial intent, copy hierarchy, and context to choose an appropriate professional direction.",
   };
 }
 
-function createPromptVariation(spec, profile) {
+function inferAudience(raw) {
+  const groups = [];
+  if (raw.includes("어린이") || raw.includes("아이")) groups.push("children / family visitors");
+  if (raw.includes("어르신") || raw.includes("부모") || raw.includes("어버이")) groups.push("older adults / parents");
+  if (raw.includes("학부모")) groups.push("parents comparing education options");
+  if (raw.includes("직장") || raw.includes("점심")) groups.push("nearby workers");
+  if (raw.includes("sns") || raw.includes("인스타")) groups.push("mobile social viewers");
+  return groups.length > 0 ? groups.join(", ") : "local commercial viewers who decide quickly";
+}
+
+function inferTone(raw, referenceNotes, purpose) {
+  const style = `${raw} ${String(referenceNotes ?? "").toLowerCase()}`;
+  if (style.includes("재미") || style.includes("유쾌") || style.includes("축제")) {
+    return "energetic, playful, and commercially clear";
+  }
+  if (style.includes("프리미엄") || style.includes("고급") || purpose === purposeProfiles.branding) {
+    return "confident, restrained, premium, and trustworthy";
+  }
+  if (style.includes("강한") || style.includes("임팩트") || style.includes("할인")) {
+    return "bold, direct, high-contrast, and urgent";
+  }
+  return "practical, professional, readable, and concept-ready";
+}
+
+function diagnoseCopy(input, intents) {
+  const facts = [];
+  if (input.headline) facts.push(`main hook: ${input.headline}`);
+  if (input.subcopy) facts.push(`supporting facts: ${input.subcopy}`);
+  if (input.cta) facts.push(`action: ${input.cta}`);
+  if (intents.length > 0) facts.push(`detected intent: ${intents.map((intent) => intent.label).join(", ")}`);
+  return facts.join(" / ");
+}
+
+function buildHierarchy(input, intents, purpose) {
+  const hasFreeOffer = intents.some((intent) => intent.id === "free-offer");
+  const hasFamilyEvent = intents.some((intent) => intent.id === "family-event");
+
+  if (hasFreeOffer && hasFamilyEvent) {
+    return [
+      `1. Shared event promise: ${input.headline}`,
+      "2. Separate date/audience/benefit blocks so children and older adults are not confused",
+      `3. CTA: ${input.cta}`,
+    ];
+  }
+
+  if (hasFreeOffer) {
+    return [`1. Benefit first: ${input.headline}`, `2. Conditions: ${input.subcopy}`, `3. CTA: ${input.cta}`];
+  }
+
+  if (purpose === purposeProfiles.branding) {
+    return [`1. Brand concept: ${input.designConcept}`, `2. Key message: ${input.headline}`, `3. CTA or next step: ${input.cta}`];
+  }
+
+  return [`1. Main message: ${input.headline}`, `2. Reason to care: ${input.subcopy}`, `3. Action: ${input.cta}`];
+}
+
+function buildRefinedCopy(input, intents, purpose) {
+  const hasFreeOffer = intents.some((intent) => intent.id === "free-offer");
+  const hasFamilyEvent = intents.some((intent) => intent.id === "family-event");
+  const concept = input.designConcept.replace(/\s+/g, " ");
+
+  if (hasFreeOffer && hasFamilyEvent) {
+    return {
+      headline: "5월 가족 감사 고기 이벤트",
+      subcopy: "어린이날은 어린이 혜택, 어버이날은 어르신 혜택을 날짜별로 분리해 크게 보여주세요.",
+      cta: input.cta || "가족과 함께 방문하세요",
+      note:
+        "The generated copy may improve wording and grouping, but must not invent new dates, discounts, menu items, or eligibility conditions.",
+    };
+  }
+
+  if (hasFreeOffer) {
+    return {
+      headline: `${input.headline}을 가장 강한 오퍼로 재구성`,
+      subcopy: "무료/증정 조건을 짧은 혜택 문장과 조건 문장으로 분리하세요.",
+      cta: input.cta,
+      note:
+        "The model may rewrite the expression for clarity, but the actual offer and conditions must remain faithful to the user's input.",
+    };
+  }
+
+  if (purpose === purposeProfiles.branding) {
+    return {
+      headline: concept,
+      subcopy: "브랜드 신뢰와 전문성을 짧은 가치 문장으로 정리하세요.",
+      cta: input.cta,
+      note:
+        "The model may create a refined brand-facing line if it stays consistent with the brief and does not add unsupported claims.",
+    };
+  }
+
   return {
-    title: profile.title,
-    strategy: profile.strategy,
+    headline: input.headline,
+    subcopy: "Rewrite the support copy into a concise commercial message if the original is too literal or too long.",
+    cta: input.cta,
+    note:
+      "The model may propose improved Korean copy and grouping. Preserve factual meaning, but do not mechanically paste the input.",
+  };
+}
+
+function buildReferenceSummary(input) {
+  const referenceCount = input.referenceFiles.length;
+  if (referenceCount === 0) {
+    return "No reference image is attached. Derive style from the written brief and reference style notes only.";
+  }
+
+  return (
+    `${referenceCount} reference image(s) will be manually uploaded to GPT Image/image2. ` +
+    "Analyze them for hierarchy, contrast, spatial rhythm, type personality, color behavior, texture, and commercial layout logic. Use them as direction, not as assets to copy."
+  );
+}
+
+function detectRisks(input, ratio, intents) {
+  const risks = [];
+  const subcopyLength = input.subcopy.length;
+  if (subcopyLength > 80) risks.push("supporting copy is long, so it needs grouping instead of one paragraph");
+  if (ratio.orientation === "wide") risks.push("wide canvas can become empty or over-stretched unless information zones are planned");
+  if (ratio.orientation === "square") risks.push("near-square format can become poster-like, so keep commercial readability first");
+  if (intents.some((intent) => intent.id === "family-event")) risks.push("multiple audiences/dates can be confused unless separated visually");
+  if (!input.referenceNotes) risks.push("style direction is open, so the prompt must infer tone from commercial purpose and copy intent");
+  return risks.length > 0 ? risks : ["no major brief risk detected; maintain readable hierarchy and practical production discipline"];
+}
+
+function scoreStrategy(strategy, analysis, input) {
+  let score = 0;
+  const fitIds = [
+    input.commercialPurpose,
+    ...analysis.detectedIntents.map((intent) => intent.id),
+    analysis.ratio.orientation,
+  ];
+
+  strategy.fits.forEach((fit) => {
+    if (fitIds.includes(fit)) score += 3;
+  });
+
+  if (analysis.risks.join(" ").includes("long") && strategy.strategy.includes("Editorial")) score += 2;
+  if (analysis.risks.join(" ").includes("wide") && strategy.strategy.includes("Distance")) score += 2;
+  if (analysis.referenceStyle.length > 40 && strategy.strategy.includes("Mood")) score += 1;
+  return score;
+}
+
+function selectStrategies(analysis, input) {
+  return strategyPool
+    .map((strategy, index) => ({ ...strategy, score: scoreStrategy(strategy, analysis, input), index }))
+    .sort((a, b) => b.score - a.score || a.index - b.index)
+    .slice(0, 3)
+    .map((strategy, index) => ({
+      ...strategy,
+      title: `${["A", "B", "C"][index]}안. ${strategy.title}`,
+    }));
+}
+
+function createPromptVariation(input, analysis, strategy) {
+  const intentImplications =
+    analysis.detectedIntents.length > 0
+      ? analysis.detectedIntents.map((intent) => `${intent.label}: ${intent.implication}`).join(" ")
+      : "No narrow intent detected. Build a clear commercial concept from the stated purpose and copy hierarchy.";
+
+  return {
+    title: strategy.title,
+    strategy: strategy.strategy,
     layers: [
       {
-        label: "Design Spec 정규화",
+        label: "입력 분석",
         text:
-          `Design concept: ${spec.designConcept}. Use context: ${spec.useContext}. Commercial purpose: ${spec.purpose.label}. ` +
-          `Canvas request: ${spec.ratio.requested}. Normalized guidance: ${spec.ratio.normalized}. ` +
-          `Copy structure: headline "${spec.headline}", support copy "${spec.subcopy}", CTA "${spec.cta}".`,
+          `Do not paste the user's form fields literally. Interpret the brief first. ` +
+          `Detected intent: ${analysis.intentLabels.join(", ") || "general commercial message"}. ` +
+          `Audience: ${analysis.inferredAudience}. Tone: ${analysis.inferredTone}. ` +
+          `Copy diagnosis: ${analysis.copyDiagnosis}.`,
+      },
+      {
+        label: "재구성된 디자인 브리프",
+        text:
+          `Design a Korean commercial concept for ${input.useContext || "a professional commercial placement"}. ` +
+          `Concept: ${input.designConcept}. Commercial purpose: ${analysis.purpose.label}. ` +
+          `Reading hierarchy: ${analysis.hierarchy.join(" / ")}. ` +
+          `Suggested rewritten copy direction: headline "${analysis.refinedCopy.headline}", support "${analysis.refinedCopy.subcopy}", CTA "${analysis.refinedCopy.cta}". ` +
+          `${analysis.ratio.text}`,
       },
       {
         label: "image2 실행 프롬프트",
         text:
-          `Create a professional Korean commercial design concept for GPT Image/image2. ${spec.ratio.text} ` +
-          `Main headline must read as: "${spec.headline}". Supporting copy intent: "${spec.subcopy}". CTA: "${spec.cta}". ` +
-          `Use the following style direction: ${spec.referenceStyle}. ${spec.referenceSummary} ` +
-          `${profile.directive} Prioritize ${spec.purpose.priority}. Treat this as concept exploration for a professional designer, not final production artwork.`,
+          `Create one professional GPT Image/image2 concept direction. ${strategy.directive} ` +
+          `${strategy.composition} ${intentImplications} ` +
+          `Use this style direction as art direction, not decoration: ${analysis.referenceStyle}. ` +
+          `${analysis.referenceSummary} You may rewrite and improve the Korean copy for a stronger design concept instead of pasting the form text literally. ` +
+          `Original input for factual grounding: headline "${input.headline}", support "${input.subcopy}", CTA "${input.cta}". ` +
+          `${analysis.refinedCopy.note}`,
       },
       {
-        label: "전략형 Variation 지시",
+        label: "디렉터 판단",
         text:
-          `${profile.strategy}. This option must differ by strategy, focal hierarchy, and composition logic, not only by color. ` +
-          "Keep Korean typography large, commercially readable, and organized for later Illustrator refinement.",
+          `This option is chosen because the brief suggests: ${analysis.risks.join("; ")}. ` +
+          `Prioritize ${analysis.purpose.priority}. Make this direction meaningfully different from the other options through hierarchy, composition, and persuasion strategy.`,
       },
       {
-        label: "금지사항",
+        label: "금지사항 / QA",
         text:
-          `${profile.avoid}. Do not invent unreadable Korean text, do not hide required copy, do not exceed a 3:1 wide-layout assumption, and do not make one-click final artwork.`,
-      },
-      {
-        label: "Self-QA",
-        text:
-          "Check before accepting the result: Can the core message be understood in 3 seconds? Is the headline readable from 10m? Are headline, support copy, and CTA all present? Does the output stay inside the intended brand/style direction? Is the layout commercially useful, not just decorative?",
+          `Avoid ${strategy.avoid}. Do not create a final artwork claim, do not copy references exactly, and do not let style overpower readability. ` +
+          "Self-check: core message in 3 seconds, headline readable from 10m, all required copy present, CTA visible, brand tone intact, and layout useful for Illustrator refinement.",
       },
     ],
   };
@@ -337,14 +592,16 @@ function generateFromForm() {
     return;
   }
 
-  const spec = normalizeBrief(input);
+  const analysis = analyzeBrief(input);
   const alerts = [];
-  if (spec.ratio.warning) alerts.push(spec.ratio.warning);
+  if (analysis.ratio.warning) alerts.push(analysis.ratio.warning);
   if ((referenceInput?.files?.length ?? 0) > MAX_REFERENCE_FILES) {
     alerts.push(`참조 이미지는 상위 ${MAX_REFERENCE_FILES}장만 반영됩니다.`);
   }
   setAlert(alerts.join(" "));
-  renderPrompts(variationProfiles.map((profile) => createPromptVariation(spec, profile)));
+
+  const strategies = selectStrategies(analysis, input);
+  renderPrompts(strategies.map((strategy) => createPromptVariation(input, analysis, strategy)));
 }
 
 form.addEventListener("submit", (event) => {

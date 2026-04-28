@@ -54,7 +54,25 @@ textarea {
 .builder-panel {
   position: sticky;
   top: 32px;
+  max-height: calc(100vh - 64px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 24px;
+}
+
+.builder-panel::-webkit-scrollbar {
+  width: 10px;
+}
+
+.builder-panel::-webkit-scrollbar-track {
+  background: #ece9e1;
+  border-radius: 999px;
+}
+
+.builder-panel::-webkit-scrollbar-thumb {
+  background: #b8b2a7;
+  border: 2px solid #ece9e1;
+  border-radius: 999px;
 }
 
 .output-panel {
@@ -257,7 +275,7 @@ button:hover {
 .tag {
   width: fit-content;
   border: 1px solid rgba(200, 69, 45, 0.3);
-  border-radius: 999px;
+  border-radius: 6px;
   color: var(--warning);
   padding: 5px 9px;
   font-size: 12px;
@@ -319,6 +337,8 @@ button:hover {
 
   .builder-panel {
     position: static;
+    max-height: none;
+    overflow: visible;
   }
 
   .output-panel {
