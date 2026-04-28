@@ -2,151 +2,57 @@ const form = document.querySelector("#prompt-form");
 const output = document.querySelector("#prompt-output");
 const referenceInput = document.querySelector("#reference-images");
 const referencePreview = document.querySelector("#reference-preview");
+const formAlert = document.querySelector("#form-alert");
 
-const styleProfiles = {
-  "bold-retail-sale": {
-    label: "Bold Retail Sale",
-    labelKo: "\uac15\ud55c \ub9ac\ud14c\uc77c \uc138\uc77c",
-    typography: "oversized bold Korean headline type, large numerals, and compact support copy",
-    color: "high-contrast red, yellow, white, and charcoal",
-    tone: "urgent, direct, and price-focused",
-    avoid: "decorative detail, weak contrast, and small legal-style copy",
+const MAX_REFERENCE_FILES = 3;
+const MAX_RATIO = 3;
+let currentPrompts = [];
+let previewUrls = [];
+
+const purposeProfiles = {
+  awareness: {
+    label: "인지 / 발견성",
+    priority: "fast category recognition, strong silhouette, brand memorability, and distance readability",
   },
-  "clean-premium-local": {
-    label: "Clean Premium Local",
-    labelKo: "\ud504\ub9ac\ubbf8\uc5c4 \ub85c\uceec \ube44\uc988\ub2c8\uc2a4",
-    typography: "clean Korean sans-serif type with moderate weight and generous spacing",
-    color: "warm white, black, muted green, navy, or soft metallic accents",
-    tone: "trustworthy, refined, and professional",
-    avoid: "aggressive discount graphics, crowded copy, and loud gradients",
+  conversion: {
+    label: "전환 / 방문 유도",
+    priority: "CTA clarity, offer hierarchy, immediate benefit recognition, and low-friction action",
   },
-  "friendly-neighborhood-promo": {
-    label: "Friendly Neighborhood Promo",
-    labelKo: "\uce5c\uadfc\ud55c \ub3d9\ub124 \ud64d\ubcf4",
-    typography: "rounded or friendly Korean headline type with clear supporting text",
-    color: "warm yellow, cream, green, coral, and deep neutral contrast",
-    tone: "approachable, local, and easy to understand",
-    avoid: "childish visuals, overly soft contrast, and too many small icons",
+  event: {
+    label: "행사 / 프로모션",
+    priority: "date clarity, audience separation, event title scale, and energetic commercial impact",
   },
-  "high-impact-event": {
-    label: "High-Impact Event",
-    labelKo: "\uace0\uc784\ud329\ud2b8 \uc774\ubca4\ud2b8",
-    typography: "bold Korean display type with strong rhythm and clear date hierarchy",
-    color: "two vivid colors plus one neutral for strong event recognition",
-    tone: "energetic, immediate, and event-focused",
-    avoid: "poster-like complexity, hidden dates, and low-contrast atmosphere",
-  },
-  "food-promotion": {
-    label: "Food Promotion",
-    labelKo: "\ud478\ub4dc \ud504\ub85c\ubaa8\uc158",
-    typography: "bold Korean menu headline type with readable price or benefit text",
-    color: "warm reds, oranges, yellows, deep greens, cream, and dark contrast",
-    tone: "appetizing, commercial, and offer-driven",
-    avoid: "lifestyle imagery that hides the menu, excessive garnish graphics, and unclear offer structure",
-  },
-  "urgent-limited-time": {
-    label: "Urgent Limited-Time",
-    labelKo: "\uae30\uac04 \ud55c\uc815 \uae34\uae09 \uc138\uc77c",
-    typography: "compressed bold Korean type, large deadline text, and strong callout labels",
-    color: "red, black, white, yellow, and sharp accent contrast",
-    tone: "urgent without becoming chaotic",
-    avoid: "multiple competing badges, panic-like clutter, and tiny date text",
-  },
-  "informational-service": {
-    label: "Informational Service",
-    labelKo: "\uc815\ubcf4\ud615 \uc11c\ube44\uc2a4 \ud64d\ubcf4",
-    typography: "structured Korean type hierarchy with headline, benefit, and contact zones",
-    color: "blue, green, white, charcoal, and restrained emphasis colors",
-    tone: "credible, clear, and service-oriented",
-    avoid: "vague brand-only layouts, paragraph-heavy copy, and decorative icons",
-  },
-  "youth-trend-promo": {
-    label: "Youth Trend Promo",
-    labelKo: "\uc601 \ud2b8\ub80c\ub4dc \ud504\ub85c\ubaa8\uc158",
-    typography: "contemporary Korean display type with selective English accent text",
-    color: "bright accent colors, black and white contrast, neon accents, or playful pastel contrast",
-    tone: "fresh, trendy, and still commercially readable",
-    avoid: "illegible experimental type, too many sticker elements, and generic social templates",
+  branding: {
+    label: "브랜딩 / 신뢰감",
+    priority: "consistent tone, refined hierarchy, trust cues, and premium restraint",
   },
 };
 
 const variationProfiles = [
   {
-    title: "\u0031\uc548. \uc784\ud329\ud2b8 \uce74\ud53c\ud615",
+    title: "A안. 타이포 중심",
+    strategy: "Typography-first information design",
     directive:
-      "Make the requested message the main product. Win through headline scale, offer clarity, and a fast reading order.",
-    composition:
-      "Use a headline-first structure. Primary message first, benefit or key information second, supporting detail third. Keep graphic elements minimal and subordinate.",
+      "Make the Korean headline the visual anchor. Win through hierarchy, spacing, contrast, and a 3-second reading order.",
+    avoid: "tiny body copy, low-contrast type, decorative effects that weaken legibility, and scattered badges",
   },
   {
-    title: "\u0032\uc548. \ube44\uc8fc\uc5bc \uc778\uc9c0\ud615",
+    title: "B안. 비주얼 중심",
+    strategy: "Visual-led brand recognition",
     directive:
-      "Make the business category, product, or service immediately understandable while keeping the requested message readable and commercially direct.",
-    composition:
-      "Use a balanced structure where a product, service, or category cue supports the headline. Keep all copy grouped into clear reading zones.",
+      "Use a strong image, graphic motif, texture, or spatial rhythm to create instant mood while keeping the copy easy to read.",
+    avoid: "generic stock-photo feeling, visual noise behind Korean text, copied reference layouts, and unclear focal points",
   },
   {
-    title: "\u0033\uc548. \uc7a5\uac70\ub9ac \uac00\ub3c5\ud615",
+    title: "C안. 상업 성과 중심",
+    strategy: "Conversion-focused commercial layout",
     directive:
-      "Reduce detail and maximize contrast so the message works for street-facing banners and signs at a glance.",
-    composition:
-      "Use a simple block layout with strong figure-ground contrast, large type, and enough spacing for distance readability.",
+      "Prioritize CTA, benefit, offer, and distance readability. Make the design useful for real commercial decision-making.",
+    avoid: "poster-like complexity, hidden CTA, over-stylized lettering, weak offer emphasis, and excessive fine detail",
   },
 ];
 
-const intentProfiles = [
-  {
-    label: "Event / Campaign",
-    labelKo: "\uc774\ubca4\ud2b8 / \ucea0\ud398\uc778",
-    keywords: ["\uc774\ubca4\ud2b8", "\ud589\uc0ac", "\uc5b4\ub9b0\uc774\ub0a0", "\uc5b4\ubc84\uc774\ub0a0", "\uae30\ub150", "\ucd95\uc81c", "\uc2dc\uc98c", "\ucea0\ud398\uc778"],
-    priority:
-      "date clarity, event title visibility, target audience separation, and festive commercial impact",
-  },
-  {
-    label: "Sale / Discount",
-    labelKo: "\uc138\uc77c / \ud560\uc778",
-    keywords: ["\ud560\uc778", "\uc138\uc77c", "\ud2b9\uac00", "\uacf5\uc9dc", "\ubb34\ub8cc", "1+1", "\uac00\uaca9", "\uc6d0", "%", "\ud55c\uc815"],
-    priority:
-      "offer readability, price or benefit scale, urgency, and fast street-level recognition",
-  },
-  {
-    label: "Menu / Product Push",
-    labelKo: "\uba54\ub274 / \uc0c1\ud488 \uac15\uc870",
-    keywords: ["\uba54\ub274", "\uc2e0\uba54\ub274", "\uace0\uae30", "\ucee4\ud53c", "\uc74c\ub8cc", "\uc810\uc2ec", "\uc138\ud2b8", "\ub300\ud45c", "\ucd94\ucc9c"],
-    priority:
-      "product desirability, product name hierarchy, price or benefit clarity, and visual recognition",
-  },
-  {
-    label: "Opening / Relocation",
-    labelKo: "\uc624\ud508 / \uc774\uc804",
-    keywords: ["\uc624\ud508", "\uac1c\uc5c5", "\uc2e0\uc7a5", "\uc774\uc804", "\ud655\uc7a5", "\uc7ac\uc624\ud508", "\uc2e0\uaddc"],
-    priority:
-      "business name visibility, location clarity, opening message strength, and trust",
-  },
-  {
-    label: "Service Information",
-    labelKo: "\uc11c\ube44\uc2a4 \uc548\ub0b4",
-    keywords: ["\uc0c1\ub2f4", "\uc9c4\ub8cc", "\uc218\uc5c5", "\ud504\ub85c\uadf8\ub7a8", "\uc11c\ube44\uc2a4", "\uc608\uc57d", "\ubb38\uc758", "\ud61c\ud0dd"],
-    priority:
-      "service category clarity, benefit hierarchy, credibility, and contact/action readability",
-  },
-  {
-    label: "Recruitment / Notice",
-    labelKo: "\ubaa8\uc9d1 / \uacf5\uc9c0",
-    keywords: ["\ubaa8\uc9d1", "\ucc44\uc6a9", "\uc54c\ub9bc", "\uacf5\uc9c0", "\ub4f1\ub85d", "\uc811\uc218", "\uc601\uc5c5\uc2dc\uac04", "\ud734\ubb34"],
-    priority:
-      "notice purpose, required action, conditions, schedule, and contact readability",
-  },
-  {
-    label: "Brand / Storefront Recognition",
-    labelKo: "\ube0c\ub79c\ub4dc / \ub9e4\uc7a5 \uc778\uc9c0",
-    keywords: ["\uac04\ud310", "\uc678\uad00", "\ub9e4\uc7a5", "\ube0c\ub79c\ub4dc", "\ub85c\uace0", "\uc0c1\ud638", "\ud30c\uc0ac\ub4dc", "\uc785\uad6c"],
-    priority:
-      "business name visibility, category recognition, facade compatibility, and distance readability",
-  },
-];
-
-function normalizeInput(value, fallback) {
+function normalizeInput(value, fallback = "") {
   const trimmed = String(value ?? "").trim();
   return trimmed.length > 0 ? trimmed : fallback;
 }
@@ -160,146 +66,173 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
-function parseRatio(rawSize) {
-  const size = String(rawSize ?? "").toLowerCase().replaceAll(",", "");
-  const dimensionMatch = size.match(/(\d+(?:\.\d+)?)\s*(?:x|\*|×|:)\s*(\d+(?:\.\d+)?)/);
+function parseRatio(rawValue) {
+  const value = String(rawValue ?? "").toLowerCase().replaceAll(",", "");
+  const dimensionMatch = value.match(/(\d+(?:\.\d+)?)\s*(?:x|\*|×|:)\s*(\d+(?:\.\d+)?)/);
 
-  if (!dimensionMatch) {
-    if (size.includes("1:1") || size.includes("\uc815\uc0ac\uac01")) return { ratio: 1, label: "1:1 square format" };
-    if (size.includes("\uc138\ub85c")) return { ratio: 0.5, label: "vertical banner format" };
-    if (size.includes("\uac00\ub85c") || size.includes("\ud604\uc218\ub9c9")) return { ratio: 4, label: "wide horizontal banner format" };
-    return { ratio: null, label: "custom size or ratio" };
+  if (dimensionMatch) {
+    const width = Number(dimensionMatch[1]);
+    const height = Number(dimensionMatch[2]);
+    if (width > 0 && height > 0) {
+      return { ratio: width / height, width, height };
+    }
   }
 
-  const width = Number(dimensionMatch[1]);
-  const height = Number(dimensionMatch[2]);
-  if (!width || !height) return { ratio: null, label: "custom size or ratio" };
+  if (value.includes("정사각") || value.includes("square")) return { ratio: 1 };
+  if (value.includes("세로") || value.includes("vertical")) return { ratio: 0.56 };
+  if (value.includes("가로") || value.includes("banner") || value.includes("현수막")) return { ratio: 3 };
+  return { ratio: null };
+}
+
+function getRatioGuidance(rawValue) {
+  const parsed = parseRatio(rawValue);
+  const requested = normalizeInput(rawValue, "custom canvas");
+
+  if (parsed.ratio === null) {
+    return {
+      requested,
+      normalized: requested,
+      warning: "",
+      text:
+        "Canvas guidance: custom size or ratio. Keep the layout professional, readable, and close to the user's requested format.",
+    };
+  }
+
+  const clampedRatio = Math.min(parsed.ratio, MAX_RATIO);
+  const normalized = `${clampedRatio.toFixed(2).replace(/\.00$/, "")}:1`;
+  const warning =
+    parsed.ratio > MAX_RATIO
+      ? `입력 비율이 약 ${parsed.ratio.toFixed(2)}:1이라 3:1 기준으로 보정 안내를 추가했습니다.`
+      : "";
+
+  if (clampedRatio >= 2.6) {
+    return {
+      requested,
+      normalized,
+      warning,
+      text:
+        `Canvas guidance: use a maximum ${MAX_RATIO}:1 wide commercial layout. Requested: ${requested}. Normalized: ${normalized}. ` +
+        "Use strong horizontal reading zones and avoid square poster composition.",
+    };
+  }
+
+  if (clampedRatio > 1.15) {
+    return {
+      requested,
+      normalized,
+      warning,
+      text:
+        `Canvas guidance: landscape commercial format. Requested: ${requested}. Normalized: ${normalized}. ` +
+        "Build a left-to-right hierarchy with clear copy grouping.",
+    };
+  }
+
+  if (clampedRatio >= 0.85) {
+    return {
+      requested,
+      normalized,
+      warning,
+      text:
+        `Canvas guidance: near-square format. Requested: ${requested}. Normalized: ${normalized}. ` +
+        "Use compact composition and keep headline, support copy, and CTA separated.",
+    };
+  }
 
   return {
-    ratio: width / height,
-    label: `${width}:${height} ratio, approximately ${(width / height).toFixed(2)}:1`,
+    requested,
+    normalized,
+    warning,
+    text:
+      `Canvas guidance: vertical format. Requested: ${requested}. Normalized: ${normalized}. ` +
+      "Use top-to-bottom reading order and avoid wide banner assumptions.",
   };
 }
 
-function getRatioGuidance(rawSize) {
-  const parsed = parseRatio(rawSize);
-
-  if (parsed.ratio === null) {
-    return `Canvas guidance: ${parsed.label}. Follow the user's requested physical size or aspect ratio.`;
-  }
-
-  if (parsed.ratio >= 4) {
-    return `Canvas guidance: ultra-wide horizontal banner, ${parsed.label}. Use a long panoramic layout. Do not compose as a square poster or vertical flyer. Spread information left-to-right with large horizontal reading zones.`;
-  }
-
-  if (parsed.ratio >= 2) {
-    return `Canvas guidance: wide horizontal banner, ${parsed.label}. Use a landscape layout with clear left-center-right hierarchy. Do not use a square poster composition.`;
-  }
-
-  if (parsed.ratio > 1.15) {
-    return `Canvas guidance: landscape format, ${parsed.label}. Use horizontal composition and avoid vertical poster framing.`;
-  }
-
-  if (parsed.ratio >= 0.85) {
-    return `Canvas guidance: near-square format, ${parsed.label}. Use a compact poster-like composition only because the requested ratio is near square.`;
-  }
-
-  return `Canvas guidance: vertical format, ${parsed.label}. Use a top-to-bottom reading order and avoid wide banner composition.`;
+function getReferenceFiles() {
+  return Array.from(referenceInput?.files ?? []).slice(0, MAX_REFERENCE_FILES);
 }
 
-function inferIntent(rawBrief) {
-  const brief = String(rawBrief ?? "").toLowerCase();
-  const scored = intentProfiles
-    .map((intent) => ({
-      ...intent,
-      score: intent.keywords.filter((keyword) => brief.includes(keyword.toLowerCase())).length,
-    }))
-    .sort((a, b) => b.score - a.score);
-
-  return scored[0].score > 0
-    ? scored[0]
-    : {
-        label: "General Commercial Message",
-        labelKo: "\uc77c\ubc18 \uc0c1\uc5c5 \uba54\uc2dc\uc9c0",
-        priority:
-          "message clarity, commercial readability, strong hierarchy, and practical designer refinement",
-      };
+function setAlert(message) {
+  if (!formAlert) return;
+  formAlert.textContent = message;
+  formAlert.hidden = message.length === 0;
 }
 
-function createPromptVariation(
-  { businessCategory, designSize, promotionCopy, designStyle, referenceNotes, referenceFiles },
-  profile,
-) {
-  const style = styleProfiles[designStyle] ?? styleProfiles["bold-retail-sale"];
-  const intent = inferIntent(promotionCopy);
-  const targetSize = normalizeInput(designSize, "banner or sign format not specified");
-  const ratioGuidance = getRatioGuidance(targetSize);
+function validateInput(input) {
+  const missing = [];
+  if (!input.designConcept) missing.push("디자인 컨셉");
+  if (!input.headline) missing.push("헤드라인");
+  if (!input.subcopy) missing.push("서브카피");
+  if (!input.cta) missing.push("CTA");
+  return missing;
+}
+
+function normalizeBrief(input) {
+  const purpose = purposeProfiles[input.commercialPurpose] ?? purposeProfiles.conversion;
+  const ratio = getRatioGuidance(input.canvasRatio);
+  const referenceCount = input.referenceFiles.length;
   const referenceSummary =
-    referenceFiles.length > 0
-      ? `The user has selected ${referenceFiles.length} reference image(s) in the prompt tool. The designer must upload the same reference image(s) directly into GPT Image/image2 together with this prompt. Analyze the uploaded reference image(s) for style, composition, typography hierarchy, color contrast, visual energy, and commercial layout direction. Use them only as references, not as assets to copy exactly.`
-      : "No reference images attached.";
-  const referenceDirection =
-    referenceNotes.length > 0
-      ? `Reference style direction from user: ${referenceNotes}.`
-      : "No manual reference style notes provided.";
+    referenceCount > 0
+      ? `${referenceCount} reference image(s) will be manually uploaded by the designer to GPT Image/image2. Analyze them for layout rhythm, typography hierarchy, color contrast, texture, and commercial energy. Do not copy them exactly.`
+      : "No reference image is attached. Follow the written style direction instead.";
 
   return {
+    designConcept: input.designConcept,
+    useContext: input.useContext || "professional commercial design concept",
+    headline: input.headline,
+    subcopy: input.subcopy,
+    cta: input.cta,
+    purpose,
+    ratio,
+    referenceStyle:
+      input.referenceNotes ||
+      "Use a clear professional commercial style. Prioritize typography hierarchy, composition discipline, and practical Illustrator refinement.",
+    referenceSummary,
+  };
+}
+
+function createPromptVariation(spec, profile) {
+  return {
     title: profile.title,
-    styleLabel: `${style.labelKo} / ${intent.labelKo}`,
+    strategy: profile.strategy,
     layers: [
       {
-        name: "subject",
-        label: "\uc8fc\uc81c / \uc694\uccad \uc815\ub9ac",
-        text: `Create a Korean commercial banner or sign concept for ${businessCategory}. Target size or aspect ratio: ${targetSize}. ${ratioGuidance} User brief and required content: "${promotionCopy}". Inferred content intent: ${intent.label}. This is for professional concept exploration, not final artwork production.`,
+        label: "Design Spec 정규화",
+        text:
+          `Design concept: ${spec.designConcept}. Use context: ${spec.useContext}. Commercial purpose: ${spec.purpose.label}. ` +
+          `Canvas request: ${spec.ratio.requested}. Normalized guidance: ${spec.ratio.normalized}. ` +
+          `Copy structure: headline "${spec.headline}", support copy "${spec.subcopy}", CTA "${spec.cta}".`,
       },
       {
-        name: "style",
-        label: "\uc2a4\ud0c0\uc77c \ubc29\ud5a5",
-        text: `Use ${style.label}: ${style.typography}. Color direction: ${style.color}. The tone should feel ${style.tone}. ${referenceSummary} ${referenceDirection}`,
+        label: "image2 실행 프롬프트",
+        text:
+          `Create a professional Korean commercial design concept for GPT Image/image2. ${spec.ratio.text} ` +
+          `Main headline must read as: "${spec.headline}". Supporting copy intent: "${spec.subcopy}". CTA: "${spec.cta}". ` +
+          `Use the following style direction: ${spec.referenceStyle}. ${spec.referenceSummary} ` +
+          `${profile.directive} Prioritize ${spec.purpose.priority}. Treat this as concept exploration for a professional designer, not final production artwork.`,
       },
       {
-        name: "composition",
-        label: "\uad6c\uc131 / \ub808\uc774\uc544\uc6c3",
-        text: `${profile.composition} ${ratioGuidance} For this content type, prioritize ${intent.priority}. If the reference images suggest a useful layout rhythm, typography hierarchy, color contrast, or graphic treatment, adapt that direction while keeping the new brief original. Preserve a clear Korean reading order and keep the layout practical for Illustrator refinement.`,
+        label: "전략형 Variation 지시",
+        text:
+          `${profile.strategy}. This option must differ by strategy, focal hierarchy, and composition logic, not only by color. ` +
+          "Keep Korean typography large, commercially readable, and organized for later Illustrator refinement.",
       },
       {
-        name: "variation directives",
-        label: "\ubcc0\ud615 \uc9c0\uc2dc\uc0ac\ud56d",
-        text: `${profile.directive} This variation must differ by layout strategy, focal point, and hierarchy, not just color or decoration. Adapt the direction to the inferred content intent instead of assuming every brief is an event.`,
+        label: "금지사항",
+        text:
+          `${profile.avoid}. Do not invent unreadable Korean text, do not hide required copy, do not exceed a 3:1 wide-layout assumption, and do not make one-click final artwork.`,
       },
       {
-        name: "production notes",
-        label: "\uc0dd\uc131 / \uc791\uc5c5 \uc8fc\uc758\uc0ac\ud56d",
-        text: `Treat this as a GPT Image / image2 concept prompt only. This app does not call paid image APIs; the designer will manually paste this prompt into GPT Image/image2. If reference images were selected in this tool, upload those same images directly into GPT Image/image2 before running the prompt; otherwise the model cannot see them. Prompt instructions are written in English for better model control, but preserve required Korean copy exactly as Korean text intent. Respect the intended size or ratio: ${targetSize}. If GPT Image offers an aspect-ratio or canvas setting, choose the closest match before generation. Keep all important Korean copy large enough to evaluate. Avoid ${style.avoid}. Do not copy reference images exactly, do not create pixel-perfect final artwork, fabrication instructions, or one-click finished design.`,
+        label: "Self-QA",
+        text:
+          "Check before accepting the result: Can the core message be understood in 3 seconds? Is the headline readable from 10m? Are headline, support copy, and CTA all present? Does the output stay inside the intended brand/style direction? Is the layout commercially useful, not just decorative?",
       },
     ],
   };
 }
 
-function getReferenceFiles() {
-  return Array.from(referenceInput?.files ?? []).map((file) => file.name);
-}
-
-function renderReferencePreview() {
-  const files = Array.from(referenceInput?.files ?? []);
-  if (!referencePreview) return;
-
-  referencePreview.innerHTML = files
-    .slice(0, 3)
-    .map((file) => {
-      const url = URL.createObjectURL(file);
-      return `
-        <figure class="reference-thumb">
-          <img src="${url}" alt="${escapeHtml(file.name)}" />
-          <figcaption>${escapeHtml(file.name)}</figcaption>
-        </figure>
-      `;
-    })
-    .join("");
-}
-
 function promptToText(prompt) {
-  return prompt.layers.map((layer) => `${layer.name}:\n${layer.text}`).join("\n\n");
+  return prompt.layers.map((layer) => `${layer.label}:\n${layer.text}`).join("\n\n");
 }
 
 async function copyPrompt(index) {
@@ -311,14 +244,12 @@ async function copyPrompt(index) {
 
   if (button) {
     const original = button.textContent;
-    button.textContent = "\ubcf5\uc0ac\ub428";
+    button.textContent = "복사됨";
     setTimeout(() => {
       button.textContent = original;
     }, 1200);
   }
 }
-
-let currentPrompts = [];
 
 function renderPrompts(prompts) {
   currentPrompts = prompts;
@@ -329,9 +260,9 @@ function renderPrompts(prompts) {
           <header>
             <div>
               <h3>${escapeHtml(prompt.title)}</h3>
-              <span class="tag">${escapeHtml(prompt.styleLabel)}</span>
+              <span class="tag">${escapeHtml(prompt.strategy)}</span>
             </div>
-            <button class="copy-button" type="button" data-copy-index="${index}">\ud504\ub86c\ud504\ud2b8 \ubcf5\uc0ac</button>
+            <button class="copy-button" type="button" data-copy-index="${index}">프롬프트 복사</button>
           </header>
           <dl class="layer-list">
             ${prompt.layers
@@ -351,18 +282,69 @@ function renderPrompts(prompts) {
     .join("");
 }
 
-function generateFromForm() {
+function clearPreviewUrls() {
+  previewUrls.forEach((url) => URL.revokeObjectURL(url));
+  previewUrls = [];
+}
+
+function renderReferencePreview() {
+  const files = Array.from(referenceInput?.files ?? []);
+  clearPreviewUrls();
+
+  if (!referencePreview) return;
+  if (files.length > MAX_REFERENCE_FILES) {
+    setAlert(`참조 이미지는 ${MAX_REFERENCE_FILES}장까지만 프롬프트에 반영됩니다. 현재 선택: ${files.length}장`);
+  }
+
+  referencePreview.innerHTML = files
+    .slice(0, MAX_REFERENCE_FILES)
+    .map((file) => {
+      const url = URL.createObjectURL(file);
+      previewUrls.push(url);
+      return `
+        <figure class="reference-thumb">
+          <img src="${url}" alt="${escapeHtml(file.name)}" />
+          <figcaption>${escapeHtml(file.name)}</figcaption>
+        </figure>
+      `;
+    })
+    .join("");
+}
+
+function getInput() {
   const formData = new FormData(form);
-  const input = {
-    businessCategory: normalizeInput(formData.get("businessCategory"), "local retail shop"),
-    designSize: normalizeInput(formData.get("designSize"), "horizontal banner format"),
-    promotionCopy: normalizeInput(formData.get("promotionCopy"), "limited-time promotion"),
-    designStyle: formData.get("designStyle"),
-    referenceNotes: normalizeInput(formData.get("referenceNotes"), ""),
+  return {
+    designConcept: normalizeInput(formData.get("designConcept")),
+    useContext: normalizeInput(formData.get("useContext")),
+    canvasRatio: normalizeInput(formData.get("canvasRatio"), "3:1 or smaller commercial canvas"),
+    headline: normalizeInput(formData.get("headline")),
+    subcopy: normalizeInput(formData.get("subcopy")),
+    cta: normalizeInput(formData.get("cta")),
+    commercialPurpose: normalizeInput(formData.get("commercialPurpose"), "conversion"),
+    referenceNotes: normalizeInput(formData.get("referenceNotes")),
     referenceFiles: getReferenceFiles(),
   };
+}
 
-  renderPrompts(variationProfiles.map((profile) => createPromptVariation(input, profile)));
+function generateFromForm() {
+  const input = getInput();
+  const missing = validateInput(input);
+
+  if (missing.length > 0) {
+    currentPrompts = [];
+    output.innerHTML = "";
+    setAlert(`필수 항목을 입력해주세요: ${missing.join(", ")}`);
+    return;
+  }
+
+  const spec = normalizeBrief(input);
+  const alerts = [];
+  if (spec.ratio.warning) alerts.push(spec.ratio.warning);
+  if ((referenceInput?.files?.length ?? 0) > MAX_REFERENCE_FILES) {
+    alerts.push(`참조 이미지는 상위 ${MAX_REFERENCE_FILES}장만 반영됩니다.`);
+  }
+  setAlert(alerts.join(" "));
+  renderPrompts(variationProfiles.map((profile) => createPromptVariation(spec, profile)));
 }
 
 form.addEventListener("submit", (event) => {
@@ -376,6 +358,11 @@ output.addEventListener("click", (event) => {
   copyPrompt(Number(button.dataset.copyIndex));
 });
 
-referenceInput?.addEventListener("change", renderReferencePreview);
+referenceInput?.addEventListener("change", () => {
+  renderReferencePreview();
+  generateFromForm();
+});
+
+window.addEventListener("beforeunload", clearPreviewUrls);
 
 generateFromForm();

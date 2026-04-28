@@ -3,91 +3,128 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Design Copilot MVP - Concept Director v0.4</title>
+    <title>Design Copilot MVP - Concept Director v0.5.1</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
     <main class="app-shell">
       <section class="builder-panel" aria-labelledby="page-title">
         <div class="title-block">
-          <p class="eyebrow">Concept Director v0.4</p>
-          <h1 id="page-title">상업 배너/간판 프롬프트 디렉터</h1>
+          <p class="eyebrow">Concept Director v0.5.1</p>
+          <h1 id="page-title">전문 디자인 프롬프트 디렉터</h1>
         </div>
 
         <form id="prompt-form" class="prompt-form">
           <label class="field">
-            <span>업종 / 매장 유형</span>
+            <span>디자인 컨셉 *</span>
             <input
-              id="business-category"
-              name="businessCategory"
+              id="design-concept"
+              name="designConcept"
               type="text"
-              value="고깃집"
-              placeholder="예: 고깃집, 카페, 병원, 학원, 미용실"
+              required
+              value="창리 오창고깃집 어린이날/어버이날 이벤트"
+              placeholder="예: 지역 고깃집 가족 이벤트, 프리미엄 병원 개원, 학원 모집 캠페인"
             />
           </label>
 
           <label class="field">
-            <span>사이즈 / 비율</span>
+            <span>사용 맥락</span>
             <input
-              id="design-size"
-              name="designSize"
+              id="use-context"
+              name="useContext"
               type="text"
-              value="가로형 현수막 5000x900mm"
-              placeholder="예: 5000x900mm, 3000x600mm, 정사각 1:1, 세로 배너 900x1800mm"
+              value="매장 외부 현수막"
+              placeholder="예: OOH 현수막, 매장 POP, SNS 광고, 웹 히어로, 간판 시안"
             />
           </label>
 
           <label class="field">
-            <span>요청 내용 / 포함 문구</span>
-            <textarea
-              id="promotion-copy"
-              name="promotionCopy"
-              rows="6"
-              placeholder="예: 오픈 안내, 메뉴 소개, 가격 홍보, 행사, 모집, 매장 이전, 시즌 캠페인 등 자유롭게 입력"
-            >창리 오창고깃집 대박 이벤트. 어린이날 5월 5일 어린이는 고기(돼지)가 공짜. 어버이날 5월 8일 어르신들은 고기(돼지)가 공짜. 임팩트있고 재미있게.</textarea>
+            <span>캔버스 비율 / 사이즈</span>
+            <input
+              id="canvas-ratio"
+              name="canvasRatio"
+              type="text"
+              value="5000x900mm"
+              placeholder="예: 3:1, 2:1, 1:1, 1080x1350, 5000x900mm"
+            />
+            <small>3:1을 초과하면 image2 실행 안정성을 위해 3:1 기준으로 보정 안내가 추가됩니다.</small>
+          </label>
+
+          <fieldset class="copy-fields">
+            <legend>핵심 카피 구조 *</legend>
+            <label class="field">
+              <span>헤드라인 *</span>
+              <input
+                id="headline"
+                name="headline"
+                type="text"
+                required
+                value="어린이날·어버이날 고기 공짜 이벤트"
+                placeholder="가장 크게 보여야 하는 문구"
+              />
+            </label>
+            <label class="field">
+              <span>서브카피 *</span>
+              <textarea
+                id="subcopy"
+                name="subcopy"
+                rows="4"
+                required
+                placeholder="조건, 날짜, 대상, 혜택을 분리해서 입력"
+              >5월 5일 어린이는 돼지고기 공짜. 5월 8일 어르신은 돼지고기 공짜. 재미있고 임팩트 있게.</textarea>
+            </label>
+            <label class="field">
+              <span>CTA *</span>
+              <input
+                id="cta"
+                name="cta"
+                type="text"
+                required
+                value="가족과 함께 방문하세요"
+                placeholder="예: 지금 방문, 예약 문의, 혜택 확인, 오픈 이벤트"
+              />
+            </label>
+          </fieldset>
+
+          <label class="field">
+            <span>상업 목적</span>
+            <select id="commercial-purpose" name="commercialPurpose">
+              <option value="conversion">전환 / 방문 유도</option>
+              <option value="awareness">인지 / 발견성</option>
+              <option value="event">행사 / 프로모션</option>
+              <option value="branding">브랜딩 / 신뢰감</option>
+            </select>
           </label>
 
           <label class="field">
-            <span>참조 이미지</span>
+            <span>참조 이미지 1~3</span>
             <input id="reference-images" name="referenceImages" type="file" accept="image/*" multiple />
-            <small>프롬프트 복사 후 GPT Image에도 같은 이미지를 직접 업로드해야 반영됩니다.</small>
+            <small>최대 3장만 프롬프트에 반영됩니다. GPT Image/image2에도 같은 이미지를 직접 업로드해야 합니다.</small>
           </label>
 
           <div id="reference-preview" class="reference-preview" aria-live="polite"></div>
 
           <label class="field">
-            <span>참조 스타일 메모</span>
+            <span>참조 스타일 직접입력</span>
             <textarea
               id="reference-notes"
               name="referenceNotes"
-              rows="4"
-              placeholder="예: 노란 배경, 굵은 붓글씨, 캐릭터 느낌, 좌우 2분할 구성, 강한 할인 배지"
+              rows="5"
+              placeholder="예: 강한 검정/노랑 대비, 굵은 한글 타이포, 좌우 2분할, 사진보다 글자 중심, 금지: 작은 본문/과한 장식/저대비"
             ></textarea>
-            <small>이미지를 자동 분석하지 않으므로, 참고하고 싶은 색감/구도/글씨 느낌을 짧게 적으면 더 정확합니다.</small>
+            <small>톤, 타이포, 질감, 레이아웃 문법, 금지 요소를 자유롭게 적어주세요.</small>
           </label>
 
-          <label class="field">
-            <span>디자인 스타일</span>
-            <select id="design-style" name="designStyle">
-              <option value="bold-retail-sale">강한 리테일 세일</option>
-              <option value="clean-premium-local">프리미엄 로컬 비즈니스</option>
-              <option value="friendly-neighborhood-promo">친근한 동네 홍보</option>
-              <option value="high-impact-event">고임팩트 이벤트</option>
-              <option value="food-promotion">푸드 프로모션</option>
-              <option value="urgent-limited-time">기간 한정 긴급 세일</option>
-              <option value="informational-service">정보형 서비스 홍보</option>
-              <option value="youth-trend-promo">영 트렌드 프로모션</option>
-            </select>
-          </label>
+          <div id="form-alert" class="form-alert" aria-live="polite"></div>
 
-          <button type="submit">3개 image2 프롬프트 생성</button>
+          <button type="submit">전략형 image2 프롬프트 3안 생성</button>
         </form>
       </section>
 
       <section class="output-panel" aria-labelledby="output-title">
         <div class="output-heading">
-          <p class="eyebrow">Mock prompt engine</p>
-          <h2 id="output-title">상업 콘셉트 프롬프트 3안</h2>
+          <p class="eyebrow">Structured prompt workflow</p>
+          <h2 id="output-title">A/B/C 전문 디자인 프롬프트</h2>
         </div>
         <div id="prompt-output" class="prompt-output" aria-live="polite"></div>
       </section>
